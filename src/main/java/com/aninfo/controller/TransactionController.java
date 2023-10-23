@@ -23,8 +23,8 @@ public class TransactionController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Transaction createTransaction(@RequestBody Transaction account) {
-        return transactionService.createTransaction(account);
+    public Transaction createTransaction(@RequestBody Transaction transaction) {
+        return transactionService.createTransaction(transaction);
     }
 
     @DeleteMapping("/{id}")

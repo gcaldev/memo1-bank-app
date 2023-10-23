@@ -1,5 +1,6 @@
 package com.aninfo.service;
 
+import com.aninfo.enums.TransactionType;
 import com.aninfo.exceptions.DepositNegativeSumException;
 import com.aninfo.exceptions.InsufficientFundsException;
 import com.aninfo.model.Account;
@@ -19,13 +20,30 @@ public class TransactionService {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    private Double PROMO_MIN_AMOUNT = Double.valueOf(2000);
+
+    private Double PROMO_LIMIT = Double.valueOf(500);
+
+    @Autowired
+    private AccountService accountService;
 
     public Transaction createTransaction(Transaction transaction) {
-        return transactionRepository.save(transaction);
-    }
+        TransactionType type = transaction.getType();
+        Double amount = transaction.getAmount();
 
-    public Collection<Transaction> getTransactionsByCbu(Long cbu) {
-        return transactionRepository.findByAccountCbu(cbu);
+
+        if(type.equals(TransactionType.DEPOSIT)){
+            if(amount >= PROMO_MIN_AMOUNT) {
+                amount += Math.min(amount/10,PROMO_LIMIT);
+                transaction.setAmount(amount);
+            }
+            accountService.deposit(transaction.getAccount().getCbu(),amount);
+        }
+        if(type.equals(TransactionType.WITHDRAW)){
+            accountService.withdraw(transaction.getAccount().getCbu(),amount);
+        }
+
+        return transactionRepository.save(transaction);
     }
 
     public Optional<Transaction> findById(Long id) {

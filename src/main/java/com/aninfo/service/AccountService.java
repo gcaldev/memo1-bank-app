@@ -6,8 +6,11 @@ import com.aninfo.exceptions.InsufficientFundsException;
 import com.aninfo.model.Account;
 import com.aninfo.model.Transaction;
 import com.aninfo.repository.AccountRepository;
+import javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 
 import javax.transaction.Transactional;
 import java.util.Collection;
@@ -19,12 +22,8 @@ public class AccountService {
     @Autowired
     private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionService transactionService;
 
-    private Double PROMO_MIN_AMOUNT = Double.valueOf(2000);
 
-    private Double PROMO_LIMIT = Double.valueOf(500);
 
     public Account createAccount(Account account) {
         return accountRepository.save(account);
@@ -57,8 +56,6 @@ public class AccountService {
         account.setBalance(account.getBalance() - sum);
         accountRepository.save(account);
 
-        transactionService.createTransaction(new Transaction(account,sum, TransactionType.WITHDRAW));
-
         return account;
     }
 
@@ -69,17 +66,17 @@ public class AccountService {
             throw new DepositNegativeSumException("Cannot deposit negative sums");
         }
 
-        if(sum >= PROMO_MIN_AMOUNT) {
-            sum += Math.min(sum/10,PROMO_LIMIT);
-        }
-
         Account account = accountRepository.findAccountByCbu(cbu);
         account.setBalance(account.getBalance() + sum);
         accountRepository.save(account);
 
-        transactionService.createTransaction(new Transaction(account,sum,TransactionType.DEPOSIT));
-
         return account;
     }
 
+    public Collection<Transaction> getTransactions(Long cbu) {
+        return accountRepository
+                .findById(cbu)
+                .orElseThrow(() -> new HttpClientErrorException(HttpStatus.NOT_FOUND, "No hay una cuenta con el cbu ingresado"))
+                .getTransactions();
+    }
 }
